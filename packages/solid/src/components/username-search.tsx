@@ -1,5 +1,7 @@
+import { Accessor, JSX } from "solid-js";
+
 const createDebounce = () => {
-  let timeoutId: NodeJS.Timeout;
+  let timeoutId: number | null = null;
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   return <T extends (...args: any) => any>(fn: T, delay: number) => {
     return (...args: Parameters<T>) => {
@@ -40,11 +42,11 @@ const getSearchedUsername = async (username: string) => {
 };
 
 type Props = {
-  value: string;
-  handleChange: (e: React.ChangeEvent<HTMLInputElement>) => void;
+  value: Accessor<string>;
+  handleChange?: JSX.InputEventHandler<HTMLInputElement, InputEvent>;
   setSearchedUsernames: (searchedUsernames: GetSearchedUsernameResult) => void;
   className?: string;
-  inputProps?: React.InputHTMLAttributes<HTMLInputElement>;
+  inputProps?: JSX.InputHTMLAttributes<HTMLInputElement>;
 };
 
 /**
@@ -63,26 +65,25 @@ export const UsernameSearch = ({
   inputProps,
 }: Props) => {
   const debouncedSearch = debounce(
-    async (e: React.ChangeEvent<HTMLInputElement>) => {
-      const username = e.target.value;
+    async (e: InputEvent & { currentTarget: HTMLInputElement }) => {
+      const username = e.currentTarget?.value ?? "";
       const data = await getSearchedUsername(username);
-
       setSearchedUsernames(data);
     },
     DEBOUNCE_DELAY_MS,
   );
 
-  const onChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const onChange: JSX.InputEventHandlerUnion<HTMLInputElement, InputEvent> = (e) => {
     debouncedSearch(e);
-    handleChange(e);
+    if (handleChange) handleChange(e);
   };
 
   return (
     <input
       type="text"
-      value={value}
-      onChange={onChange}
-      className={className || 'rounded-md border-black border-2'}
+      value={value()}
+      onInput={onChange}
+      class={className || 'rounded-md border-black border-2'}
       {...inputProps}
     />
   );
